@@ -1,8 +1,8 @@
 # tablecut-python
 
 Python client for [Tablecut](https://tablecut.com) — extract tables from PDFs
-and get clean JSON, markdown, or CSV back. Handles merged cells, multi-page
-tables, and scanned documents, with an honest per-table confidence score.
+as clean JSON, markdown, or CSV. Handles merged cells, multi-page tables, and
+scanned documents, with per-table confidence scores.
 
 ## Install
 
@@ -10,7 +10,7 @@ tables, and scanned documents, with an honest per-table confidence score.
 pip install requests
 ```
 
-Then drop [`tablecut.py`](tablecut.py) into your project (single file, one
+Drop [`tablecut.py`](tablecut.py) into your project (single file, one
 dependency). Get an API key at [tablecut.com](https://tablecut.com), or
 subscribe on [RapidAPI](https://rapidapi.com/piealex/api/tablecut-pdf-table-extraction-api).
 
@@ -19,7 +19,7 @@ subscribe on [RapidAPI](https://rapidapi.com/piealex/api/tablecut-pdf-table-extr
 ```python
 from tablecut import Tablecut
 
-client = Tablecut()  # reads the TABLECUT_API_KEY environment variable
+client = Tablecut()  # reads TABLECUT_API_KEY
 result = client.extract("report.pdf", format="json,markdown")
 for table in result["tables"]:
     print(table["markdown"])
@@ -53,59 +53,43 @@ for table in result["tables"]:
 }
 ```
 
-Notes on the shape:
-
-- `headers` is `null` when no header row was detected — nothing is guessed.
-- `rows` has merged cells **resolved** (values duplicated into every covered
-  position); the original merge geometry is preserved in `spans`. Empty cells
-  are `null`, not `""`.
-- `confidence` is calibrated: ~0.9 means roughly 90% of such tables are fully
-  correct.
-- Vision-fallback pages (scanned documents) bill at 3x, reported transparently
-  in `usage`.
-- A PDF with no detectable tables is a **success**: `tables` is empty and
-  `warnings` explains why.
+- `headers` is `null` when no header row was detected.
+- `rows` has merged cells resolved; original geometry is in `spans`. Empty
+  cells are `null`.
+- Vision-fallback pages (scanned documents) bill at 3x, reported in `usage`.
+- A PDF with no tables is a success: empty `tables`, explanatory `warnings`.
 
 ## Options
 
 ```python
 result = client.extract(
     "report.pdf",          # path, bytes, or an open binary file
-    pages="1,3,5-10",      # 1-indexed pages and inclusive ranges; default "all"
+    pages="1,3,5-10",      # 1-indexed pages and ranges; default "all"
     format="json,markdown" # any of json, markdown, csv; default "json"
 )
 ```
 
-## Error handling
+## Errors
 
-All API errors carry a stable machine-readable `code` (switch on it — message
-wording may change), the HTTP `status_code`, and a `request_id` to include in
-support requests.
+Every error carries a stable `code`, the HTTP `status_code`, and a
+`request_id` for support.
 
 ```python
-from tablecut import (
-    AuthenticationError,   # 401 — missing or invalid API key
-    InvalidRequestError,   # 4xx — bad params, too large, not a PDF, unreadable PDF
-    RateLimitError,        # 429 — throttled (retry_after) or monthly quota exhausted
-    ServerError,           # 5xx — Tablecut's fault; nothing is billed
-    Tablecut,
-)
+from tablecut import AuthenticationError, InvalidRequestError, RateLimitError, ServerError
 
 try:
     result = client.extract("report.pdf")
-except RateLimitError as exc:
-    if exc.code == "quota_exceeded":
-        ...  # monthly quota used up — upgrade or wait for the reset
-    else:
-        ...  # throttled — wait exc.retry_after seconds and retry
-except InvalidRequestError as exc:
-    print(exc.code)  # e.g. "file_too_large", "invalid_pages", "unprocessable_pdf"
+except RateLimitError as exc:      # 429: rate_limited or quota_exceeded
+    print(exc.code, exc.retry_after)
+except InvalidRequestError as exc: # 4xx: file_too_large, invalid_pages, ...
+    print(exc.code)
+except AuthenticationError:        # 401
+    ...
+except ServerError:                # 5xx
+    ...
 ```
 
 ## Example
-
-A complete runnable example lives in
-[`examples/extract_tables.py`](examples/extract_tables.py):
 
 ```bash
 python examples/extract_tables.py path/to/document.pdf
@@ -113,7 +97,7 @@ python examples/extract_tables.py path/to/document.pdf
 
 ## Links
 
-- Website & API keys: [tablecut.com](https://tablecut.com)
+- Website and API keys: [tablecut.com](https://tablecut.com)
 - API reference: [tablecut.com/docs-public](https://tablecut.com/docs-public)
 - RapidAPI listing: [rapidapi.com/piealex/api/tablecut-pdf-table-extraction-api](https://rapidapi.com/piealex/api/tablecut-pdf-table-extraction-api)
 

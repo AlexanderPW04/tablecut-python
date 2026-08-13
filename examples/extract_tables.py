@@ -1,8 +1,7 @@
 """Extract tables from a PDF and print them as markdown.
 
-Usage:
-    export TABLECUT_API_KEY=your_key   # or: set TABLECUT_API_KEY=... on Windows
-    python examples/extract_tables.py path/to/document.pdf
+Usage: python examples/extract_tables.py <document.pdf>
+Requires TABLECUT_API_KEY in the environment.
 """
 
 import sys
@@ -15,11 +14,10 @@ def main() -> int:
         print("usage: python examples/extract_tables.py <document.pdf>")
         return 2
 
-    pdf_path = sys.argv[1]
-    client = Tablecut()  # reads TABLECUT_API_KEY from the environment
+    client = Tablecut()
 
     try:
-        result = client.extract(pdf_path, format="json,markdown")
+        result = client.extract(sys.argv[1], format="json,markdown")
     except RateLimitError as exc:
         wait = f" — retry in {exc.retry_after}s" if exc.retry_after else ""
         print(f"Rate limited ({exc.code}){wait}: {exc.message}")
