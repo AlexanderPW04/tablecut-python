@@ -1,4 +1,4 @@
-"""Python client for the Tablecut API — https://tablecut.com"""
+# Python client for the Tablecut API — https://tablecut.com
 
 from __future__ import annotations
 
@@ -8,25 +8,24 @@ from typing import Any, BinaryIO, Iterable, Union
 import requests
 
 __all__ = [
-    "Tablecut",
-    "TablecutError",
-    "AuthenticationError",
-    "RateLimitError",
-    "InvalidRequestError",
-    "ServerError",
+    'Tablecut',
+    'TablecutError',
+    'AuthenticationError',
+    'RateLimitError',
+    'InvalidRequestError',
+    'ServerError',
 ]
 
-__version__ = "0.1.0"
+__version__ = '0.1.0'
 
-DEFAULT_BASE_URL = "https://tablecut.com/v1"
+DEFAULT_BASE_URL = 'https://tablecut.com/v1'
 DEFAULT_TIMEOUT = 120.0
 
-FileInput = Union[str, "os.PathLike[str]", bytes, BinaryIO]
+FileInput = Union[str, 'os.PathLike[str]', bytes, BinaryIO]
 
 
 class TablecutError(Exception):
-    """Base error. Switch on `code`, never parse `message`."""
-
+    # Base error. Switch on `code`, never parse `message`.
     def __init__(
         self,
         message: str,
@@ -46,39 +45,32 @@ class TablecutError(Exception):
     def __str__(self) -> str:
         parts = [self.message]
         if self.code:
-            parts.append(f"(code: {self.code})")
+            parts.append(f'(code: {self.code})')
         if self.request_id:
-            parts.append(f"(request_id: {self.request_id})")
-        return " ".join(parts)
+            parts.append(f'(request_id: {self.request_id})')
+        return ' '.join(parts)
 
 
-class AuthenticationError(TablecutError):
-    """Missing or invalid API key (401)."""
+class AuthenticationError(TablecutError):  # 401
+    pass
 
 
-class RateLimitError(TablecutError):
-    """Throttled or quota exhausted (429). `code` is "rate_limited" or
-    "quota_exceeded"; `retry_after` is seconds to wait, if known."""
-
+class RateLimitError(TablecutError):  # 429; code is rate_limited or quota_exceeded
     def __init__(self, message: str, *, retry_after: int | None = None, **kwargs: Any) -> None:
         super().__init__(message, **kwargs)
-        self.retry_after = retry_after
+        self.retry_after = retry_after  # seconds, if known
 
 
-class InvalidRequestError(TablecutError):
-    """Rejected request (4xx other than 401/429)."""
+class InvalidRequestError(TablecutError):  # other 4xx
+    pass
 
 
-class ServerError(TablecutError):
-    """API-side failure (5xx). Nothing is billed."""
+class ServerError(TablecutError):  # 5xx; nothing is billed
+    pass
 
 
 class Tablecut:
-    """Tablecut API client.
-
-    api_key defaults to the TABLECUT_API_KEY environment variable.
-    """
-
+    # api_key defaults to the TABLECUT_API_KEY env var.
     def __init__(
         self,
         api_key: str | None = None,
@@ -87,14 +79,14 @@ class Tablecut:
         timeout: float = DEFAULT_TIMEOUT,
         session: requests.Session | None = None,
     ) -> None:
-        resolved = api_key if api_key is not None else os.environ.get("TABLECUT_API_KEY")
+        resolved = api_key if api_key is not None else os.environ.get('TABLECUT_API_KEY')
         if not resolved:
             raise AuthenticationError(
-                "No API key provided. Pass api_key=... or set TABLECUT_API_KEY. "
-                "Get a key at https://tablecut.com"
+                'No API key provided. Pass api_key=... or set TABLECUT_API_KEY. '
+                'Get a key at https://tablecut.com'
             )
         self.api_key = resolved
-        self.base_url = base_url.rstrip("/")
+        self.base_url = base_url.rstrip('/')
         self.timeout = timeout
         self._owns_session = session is None
         self._session = session or requests.Session()
@@ -103,38 +95,30 @@ class Tablecut:
         self,
         file: FileInput,
         *,
-        pages: str = "all",
-        format: str | Iterable[str] = "json",
+        pages: str = 'all',  # 'all' or 1-indexed selection like '1,3,5-10'
+        format: str | Iterable[str] = 'json',  # any of: json, markdown, csv
         filename: str | None = None,
     ) -> dict[str, Any]:
-        """Extract tables from a PDF (path, bytes, or open binary file).
-
-        pages: "all" or 1-indexed selection like "1,3,5-10".
-        format: any of "json", "markdown", "csv" (string or iterable).
-        Returns the parsed response dict; raises a TablecutError subclass
-        on API errors.
-        """
         data, resolved_name = self._read_file(file, filename)
-        format_param = format if isinstance(format, str) else ",".join(format)
+        format_param = format if isinstance(format, str) else ','.join(format)
         response = self._session.post(
-            f"{self.base_url}/extract",
-            headers={"X-API-Key": self.api_key},
-            files={"file": (resolved_name, data, "application/pdf")},
-            data={"pages": pages, "format": format_param},
+            f'{self.base_url}/extract',
+            headers={'X-API-Key': self.api_key},
+            files={'file': (resolved_name, data, 'application/pdf')},
+            data={'pages': pages, 'format': format_param},
             timeout=self.timeout,
         )
         return self._handle_response(response)
 
     def health(self) -> dict[str, Any]:
-        """Check API liveness (no auth required)."""
-        response = self._session.get(f"{self.base_url}/health", timeout=self.timeout)
+        response = self._session.get(f'{self.base_url}/health', timeout=self.timeout)
         return self._handle_response(response)
 
     def close(self) -> None:
         if self._owns_session:
             self._session.close()
 
-    def __enter__(self) -> "Tablecut":
+    def __enter__(self) -> 'Tablecut':
         return self
 
     def __exit__(self, *exc_info: object) -> None:
@@ -143,57 +127,57 @@ class Tablecut:
     @staticmethod
     def _read_file(file: FileInput, filename: str | None) -> tuple[bytes, str]:
         if isinstance(file, bytes):
-            return file, filename or "document.pdf"
+            return file, filename or 'document.pdf'
         if isinstance(file, (str, os.PathLike)):
             path = os.fspath(file)
-            with open(path, "rb") as handle:
+            with open(path, 'rb') as handle:
                 return handle.read(), filename or os.path.basename(path)
-        if hasattr(file, "read"):
+        if hasattr(file, 'read'):
             data = file.read()
             if not isinstance(data, bytes):
                 raise TypeError("file must be opened in binary mode ('rb')")
-            inferred = filename or os.path.basename(getattr(file, "name", "") or "") or "document.pdf"
+            inferred = filename or os.path.basename(getattr(file, 'name', '') or '') or 'document.pdf'
             return data, inferred
         raise TypeError(
-            f"file must be a path, bytes, or a binary file object, not {type(file).__name__}"
+            f'file must be a path, bytes, or a binary file object, not {type(file).__name__}'
         )
 
     @staticmethod
     def _handle_response(response: requests.Response) -> dict[str, Any]:
-        request_id = response.headers.get("X-Request-Id")
+        request_id = response.headers.get('X-Request-Id')
 
         if response.ok:
             try:
                 return response.json()
             except ValueError as exc:
                 raise TablecutError(
-                    "API returned a non-JSON success response",
+                    'API returned a non-JSON success response',
                     status_code=response.status_code,
                     request_id=request_id,
                 ) from exc
 
         code: str | None = None
-        message = f"HTTP {response.status_code}"
+        message = f'HTTP {response.status_code}'
         docs_url: str | None = None
         try:
-            detail = response.json().get("error", {})
-            code = detail.get("code")
-            message = detail.get("message") or message
-            request_id = detail.get("request_id") or request_id
-            docs_url = detail.get("docs_url")
+            detail = response.json().get('error', {})
+            code = detail.get('code')
+            message = detail.get('message') or message
+            request_id = detail.get('request_id') or request_id
+            docs_url = detail.get('docs_url')
         except ValueError:
             pass
 
         kwargs: dict[str, Any] = {
-            "code": code,
-            "status_code": response.status_code,
-            "request_id": request_id,
-            "docs_url": docs_url,
+            'code': code,
+            'status_code': response.status_code,
+            'request_id': request_id,
+            'docs_url': docs_url,
         }
         if response.status_code == 401:
             raise AuthenticationError(message, **kwargs)
         if response.status_code == 429:
-            header = response.headers.get("Retry-After")
+            header = response.headers.get('Retry-After')
             retry_after = int(header) if header and header.isdigit() else None
             raise RateLimitError(message, retry_after=retry_after, **kwargs)
         if response.status_code >= 500:

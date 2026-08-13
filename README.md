@@ -20,9 +20,9 @@ subscribe on [RapidAPI](https://rapidapi.com/piealex/api/tablecut-pdf-table-extr
 from tablecut import Tablecut
 
 client = Tablecut()  # reads TABLECUT_API_KEY
-result = client.extract("report.pdf", format="json,markdown")
-for table in result["tables"]:
-    print(table["markdown"])
+result = client.extract('report.pdf', format='json,markdown')
+for table in result['tables']:
+    print(table['markdown'])
 ```
 
 ## Sample response
@@ -63,9 +63,9 @@ for table in result["tables"]:
 
 ```python
 result = client.extract(
-    "report.pdf",          # path, bytes, or an open binary file
-    pages="1,3,5-10",      # 1-indexed pages and ranges; default "all"
-    format="json,markdown" # any of json, markdown, csv; default "json"
+    'report.pdf',          # path, bytes, or an open binary file
+    pages='1,3,5-10',      # 1-indexed pages and ranges; default 'all'
+    format='json,markdown' # any of json, markdown, csv; default 'json'
 )
 ```
 
@@ -78,7 +78,7 @@ Every error carries a stable `code`, the HTTP `status_code`, and a
 from tablecut import AuthenticationError, InvalidRequestError, RateLimitError, ServerError
 
 try:
-    result = client.extract("report.pdf")
+    result = client.extract('report.pdf')
 except RateLimitError as exc:      # 429: rate_limited or quota_exceeded
     print(exc.code, exc.retry_after)
 except InvalidRequestError as exc: # 4xx: file_too_large, invalid_pages, ...
